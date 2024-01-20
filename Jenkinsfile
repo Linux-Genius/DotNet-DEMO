@@ -1,45 +1,37 @@
 pipeline {
     agent any
-    
     tools{
-        
         jdk 'jdk17'
     }
-    
-    environment {
-        
+    environment{
         SCANNER_HOME= tool 'sonar-scanner'
     }
 
     stages {
-        stage('Git Checkout ') {
+        stage('Git Checkout') {
             steps {
-                git 'https://github.com/jaiswaladi246/DotNet-DEMO.git'
+                git 'https://github.com/Linux-Genius/DotNet-DEMO.git'
             }
         }
-        
-        stage('OWASP Dependency Check') {
+        stage('OWASP Dependency  Check') {
             steps {
-                dependencyCheck additionalArguments: ' --scan ./ ', odcInstallation: 'DC'
+                dependencyCheck additionalArguments: ' --scan ./', odcInstallation: 'DC'
                     dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
             }
         }
         
-        stage('Trivy FS SCan') {
+        stage('Trivy Fs Scan') {
             steps {
                 sh "trivy fs ."
             }
         }
         
-        stage('Sonarqube Analysis') {
+        stage('Soanr Analysis') {
             steps {
-                
-                withSonarQubeEnv('sonar'){
-                  sh ''' $SCANNER_HOME/bin/sonar-scanner -Dsonar.projectName=dotnet-demo \
-                    -Dsonar.projectKey=dotnet-demo ''' 
-               }
-                
-               
+                withSonarQubeEnv('sonar') {
+                sh ''' $SCANNER_HOME/bin/sonar-scanner -Dsonar.projectName=dotnet-demo \
+                -Dsonar.projectKey=dotnet-demo '''
+                }
             }
         }
         
@@ -53,7 +45,7 @@ pipeline {
             }
         }
         
-        stage('Docker Push') {
+        stage('Docker Push Image') {
             steps {
                 script{
                     withDockerRegistry(credentialsId: 'docker-cred') {
@@ -65,10 +57,12 @@ pipeline {
         
         stage('Docker Deploy') {
             steps {
-                sh "docker run -d -p 5000:5000 adijaiswal/dotnet-demoapp"
+                script{
+                    withDockerRegistry(credentialsId: 'docker-cred') {
+                        sh "docker run -d -p 5000:5000 abhisharma1423/dotnet-demoapp"
+                    }
+                }
             }
-        }
-        
-        
+        }   
     }
 }
